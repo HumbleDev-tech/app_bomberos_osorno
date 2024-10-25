@@ -1,14 +1,14 @@
-// app/(tabs)/home.js
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, StatusBar, FlatList, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
-import theme from '../theme';  // Importa el tema
-import AsyncStorage from '@react-native-async-storage/async-storage'; // Importa AsyncStorage
+import { Ionicons } from '@expo/vector-icons';
+import theme from '../theme';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function Home() {
   const [userName, setUserName] = useState('');
+  const [combinedList, setCombinedList] = useState([]);
   const router = useRouter();
-  const [pressedCard, setPressedCard] = useState(null);
 
   useEffect(() => {
     const fetchUserName = async () => {
@@ -16,55 +16,56 @@ export default function Home() {
       setUserName(name || 'Usuario');
     };
     fetchUserName();
+
+    // Simulate fetching data
+    const notifications = [
+      { id: '1', text: 'Nueva alerta de incendio en la calle Principal', type: 'notification', icon: 'flame-outline' },
+      { id: '2', text: 'Reunión de equipo a las 3 PM en la sala de conferencias', type: 'notification', icon: 'people-outline' },
+    ];
+    const tasks = [
+      { id: '3', text: 'Revisar equipo de rescate y actualizar inventario', type: 'task', icon: 'clipboard-outline' },
+      { id: '4', text: 'Completar informe de incidente del 12/07/2023', type: 'task', icon: 'document-text-outline' },
+    ];
+    const reminders = [
+      { id: '5', text: 'Mantenimiento programado del camión 1 el 15/07/2023', type: 'reminder', icon: 'calendar-outline' },
+      { id: '6', text: 'Entrenamiento de primeros auxilios el 20/07/2023', type: 'reminder', icon: 'fitness-outline' },
+    ];
+
+    setCombinedList([...notifications, ...tasks, ...reminders]);
   }, []);
 
-  const navigateTo = (route) => {
-    router.push(`/(modals)/${route}`);
-  };
-
-  const handlePressIn = (card) => {
-    setPressedCard(card);
-  };
-
-  const handlePressOut = () => {
-    setPressedCard(null);
-  };
+  const renderItem = ({ item }) => (
+    <TouchableOpacity style={[styles.item, styles[`item_${item.type}`]]}>
+      <View style={styles.itemIconContainer}>
+        <Ionicons name={item.icon} size={24} color={theme.colors[item.type]} />
+      </View>
+      <View style={styles.itemContent}>
+        <Text style={styles.itemTitle}>
+          {item.type === 'notification' ? 'Notificación' : item.type === 'task' ? 'Tarea Pendiente' : 'Recordatorio'}
+        </Text>
+        <Text style={styles.itemText}>{item.text}</Text>
+      </View>
+    </TouchableOpacity>
+  );
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" />
-      <Text style={styles.title}>Bienvenido, {userName}</Text>
-      
-      <TouchableOpacity
-        style={[styles.card, pressedCard === 'resumen' && styles.cardPressed]}
-        onPress={() => navigateTo('resumen')}
-        onPressIn={() => handlePressIn('resumen')}
-        onPressOut={handlePressOut}
-      >
-        <Text style={styles.cardTitle}>Resumen</Text>
-        <Text style={styles.cardContent}>Aquí se mostrará un resumen de la actividad reciente.</Text>
-      </TouchableOpacity>
+      <StatusBar barStyle="light-content" />
+      <View style={styles.header}>
+        <Text style={styles.welcomeText}>Bienvenido,</Text>
+        <Text style={styles.userName}>{userName}</Text>
+      </View>
 
-      <TouchableOpacity
-        style={[styles.card, pressedCard === 'alertas' && styles.cardPressed]}
-        onPress={() => navigateTo('alertas')}
-        onPressIn={() => handlePressIn('alertas')}
-        onPressOut={handlePressOut}
-      >
-        <Text style={styles.cardTitle}>Alertas</Text>
-        <Text style={styles.cardContent}>No hay alertas pendientes.</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[styles.card, pressedCard === 'proximas-actividades' && styles.cardPressed]}
-        onPress={() => navigateTo('proximas-actividades')}
-        onPressIn={() => handlePressIn('proximas-actividades')}
-        onPressOut={handlePressOut}
-      >
-        <Text style={styles.cardTitle}>Próximas Actividades</Text>
-        <Text style={styles.cardContent}>- Mantenimiento programado: 15/07/2023</Text>
-        <Text style={styles.cardContent}>- Entrenamiento: 20/07/2023</Text>
-      </TouchableOpacity>
+      <View style={styles.content}>
+        <Text style={styles.sectionTitle}>Actividades Recientes</Text>
+        <FlatList
+          data={combinedList}
+          renderItem={renderItem}
+          keyExtractor={item => item.id}
+          style={styles.list}
+          contentContainerStyle={styles.listContent}
+        />
+      </View>
     </View>
   );
 }
@@ -72,38 +73,81 @@ export default function Home() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    paddingTop: StatusBar.currentHeight + 20,
     backgroundColor: theme.colors.background,
   },
-  title: {
-    fontSize: 26,
-    fontWeight: '700',
-    marginBottom: 25,
-    color: theme.colors.primary,
-  },
-  card: {
-    backgroundColor: theme.colors.cardBackground,
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 20,
-    elevation: 5,
-    shadowColor: theme.colors.shadowColor,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-  },
-  cardPressed: {
+  header: {
     backgroundColor: theme.colors.primary,
+    padding: 20,
+    paddingTop: StatusBar.currentHeight + 20,
   },
-  cardTitle: {
+  welcomeText: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+  userName: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  content: {
+    flex: 1,
+    padding: 20,
+  },
+  sectionTitle: {
     fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 10,
+    fontWeight: 'bold',
+    marginBottom: 15,
     color: theme.colors.textPrimary,
   },
-  cardContent: {
+  list: {
+    flex: 1,
+  },
+  listContent: {
+    paddingBottom: 20,
+  },
+  item: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 10,
+    elevation: 3,
+    shadowColor: theme.colors.shadowColor,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  itemIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  item_notification: {
+    borderLeftWidth: 4,
+    borderLeftColor: theme.colors.notification,
+  },
+  item_task: {
+    borderLeftWidth: 4,
+    borderLeftColor: theme.colors.task,
+  },
+  item_reminder: {
+    borderLeftWidth: 4,
+    borderLeftColor: theme.colors.reminder,
+  },
+  itemContent: {
+    flex: 1,
+  },
+  itemTitle: {
     fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 5,
+    color: theme.colors.textPrimary,
+  },
+  itemText: {
+    fontSize: 14,
     color: theme.colors.textSecondary,
   },
 });

@@ -4,14 +4,14 @@ import { View, Text, StyleSheet, ActivityIndicator, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import theme from './theme';  // Importa el tema
 
-export default function Home() {
+export default function Index() {
   const router = useRouter();
 
   useEffect(() => {
     // Simula una carga y luego navega a la pantalla de inicio de sesión
     setTimeout(() => {
-      router.push('/login');
-    }, 3000);
+      router.replace('/login');  // Usa replace en lugar de push
+    }, 2000);
   }, []);
 
   return (
