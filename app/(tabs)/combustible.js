@@ -75,7 +75,6 @@ export default function Combustible() {
       >
         <Ionicons name="add" size={24} color="white" />
       </TouchableOpacity>
-
       <Modal
         visible={!!selectedLoad}
         transparent={true}
@@ -95,28 +94,6 @@ export default function Combustible() {
                   <View style={styles.modalInfo}>
                     <Ionicons name="calendar" size={24} color={theme.colors.primary} />
                     <Text style={styles.modalText}>Fecha: {selectedLoad.date}</Text>
-                  </View>
-                  <View style={styles.modalButtons}>
-                    <TouchableOpacity
-                      style={[styles.modalButton, styles.modalButtonEdit]}
-                      onPress={() => {
-                        router.push(`/modals/formulario_combustible?id=${selectedLoad.id}`);
-                        setSelectedLoad(null);
-                      }}
-                    >
-                      <Ionicons name="create" size={20} color="white" />
-                      <Text style={styles.modalButtonText}>Editar</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.modalButton, styles.modalButtonDelete]}
-                      onPress={() => {
-                        handleDelete(selectedLoad.id);
-                        setSelectedLoad(null);
-                      }}
-                    >
-                      <Ionicons name="trash" size={20} color="white" />
-                      <Text style={styles.modalButtonText}>Eliminar</Text>
-                    </TouchableOpacity>
                   </View>
                 </>
               )}
@@ -148,7 +125,7 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: theme.colors.cardBackground,
-    borderRadius: 12,
+    borderRadius: 8,
     padding: 15,
     marginBottom: 15,
     shadowColor: theme.colors.shadowColor,
@@ -226,31 +203,5 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: theme.colors.textSecondary,
     marginLeft: 10,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    marginTop: 20,
-  },
-  modalButton: {
-    flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 8,
-    marginHorizontal: 5,
-  },
-  modalButtonEdit: {
-    backgroundColor: theme.colors.primary,
-  },
-  modalButtonDelete: {
-    backgroundColor: theme.colors.danger,
-  },
-  modalButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-    marginLeft: 5,
   },
 });

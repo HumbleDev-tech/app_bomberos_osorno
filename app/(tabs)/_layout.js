@@ -90,6 +90,20 @@ export default function AppLayout() {
             </View>
           ),
           tabBarShowLabel: false,
+          tabBarButton: () => null,
+        }}
+      />
+      <Tabs.Screen
+        name="cuenta"
+        options={{
+          title: "Cuenta",
+          tabBarIcon: ({ color, focused }) => (
+            <View style={{ alignItems: 'center' }}>
+              <TabBarIcon name={focused ? "person" : "person-outline"} color={color} />
+              <TabBarLabel label="Cuenta" focused={focused} />
+            </View>
+          ),
+          tabBarShowLabel: false,
         }}
       />
     </Tabs>

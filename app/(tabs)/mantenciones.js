@@ -1,55 +1,60 @@
+// app/(tabs)/mantenciones.js
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Modal, TouchableWithoutFeedback, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Modal, TouchableWithoutFeedback, StatusBar, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import theme from '../theme';
 
 export default function Mantenciones() {
-  const [maintenanceTasks, setMaintenanceTasks] = useState([]);
-  const [selectedTask, setSelectedTask] = useState(null);
+  const [mantenciones, setMantenciones] = useState([]);
+  const [selectedMantencion, setSelectedMantencion] = useState(null);
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  useEffect(() => {
-    const fetchMaintenanceTasks = async () => {
-      try {
-        const storedTasks = await AsyncStorage.getItem('maintenanceTasks');
-        const tasks = storedTasks ? JSON.parse(storedTasks) : [];
-        setMaintenanceTasks(tasks);
-      } catch (error) {
-        console.error('Error fetching maintenance tasks:', error);
-      }
-    };
-    fetchMaintenanceTasks();
-  }, []);
-
-  const handleCardPress = (task) => {
-    setSelectedTask(task);
-  };
-
-  const handleDelete = async (id) => {
+  const cargarMantenciones = async () => {
+    setLoading(true);
     try {
-      const updatedTasks = maintenanceTasks.filter(task => task.id !== id);
-      setMaintenanceTasks(updatedTasks);
-      await AsyncStorage.setItem('maintenanceTasks', JSON.stringify(updatedTasks));
-      setSelectedTask(null);
+      const response = await fetch('http://18.117.109.85/api/mantencion');
+      const data = await response.json();
+      setMantenciones(data);
     } catch (error) {
-      console.error('Error deleting maintenance task:', error);
+      console.error('Error cargando mantenciones:', error);
+      Alert.alert('Error', 'No se pudieron cargar las mantenciones');
+    } finally {
+      setLoading(false);
     }
   };
 
+  useEffect(() => {
+    cargarMantenciones();
+  }, []);
+
   const renderItem = ({ item }) => (
-    <TouchableOpacity style={styles.card} onPress={() => handleCardPress(item)}>
+    <TouchableOpacity 
+      style={styles.card} 
+      onPress={() => setSelectedMantencion(item)}
+    >
       <View style={styles.cardHeader}>
         <Ionicons name="construct" size={24} color={theme.colors.primary} />
-        <Text style={styles.cardTitle}>{item.vehicle}</Text>
+        <Text style={styles.cardTitle}>Orden: {item.ord_trabajo}</Text>
       </View>
       <View style={styles.cardContent}>
         <View style={styles.cardInfo}>
-          <Ionicons name="calendar" size={18} color={theme.colors.textSecondary} />
-          <Text style={styles.cardText}>{item.date}</Text>
+          <Ionicons name="car" size={18} color={theme.colors.textSecondary} />
+          <Text style={styles.cardText}>Patente: {item.patente}</Text>
         </View>
-        <Text style={styles.cardText}>{item.description}</Text>
+        <View style={styles.cardInfo}>
+          <Ionicons name="person" size={18} color={theme.colors.textSecondary} />
+          <Text style={styles.cardText}>Responsable: {item.personal_responsable}</Text>
+        </View>
+        <View style={styles.cardInfo}>
+          <Ionicons name="build" size={18} color={theme.colors.textSecondary} />
+          <Text style={styles.cardText}>Taller: {item.taller}</Text>
+        </View>
+        <View style={styles.cardInfo}>
+          <Ionicons name="alert-circle" size={18} color={theme.colors.textSecondary} />
+          <Text style={styles.cardText}>Estado: {item.estado_mantencion}</Text>
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -60,12 +65,20 @@ export default function Mantenciones() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Mantenciones</Text>
       </View>
-      <FlatList
-        data={maintenanceTasks}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-      />
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+        </View>
+      ) : (
+        <FlatList
+          data={mantenciones}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id.toString()}
+          contentContainerStyle={styles.listContent}
+          onRefresh={cargarMantenciones}
+          refreshing={loading}
+        />
+      )}
       <TouchableOpacity
         style={styles.fab}
         onPress={() => router.push('/modals/formulario_mantenciones')}
@@ -74,43 +87,25 @@ export default function Mantenciones() {
       </TouchableOpacity>
 
       <Modal
-        visible={!!selectedTask}
+        visible={!!selectedMantencion}
         transparent={true}
         animationType="fade"
-        onRequestClose={() => setSelectedTask(null)}
+        onRequestClose={() => setSelectedMantencion(null)}
       >
-        <TouchableWithoutFeedback onPress={() => setSelectedTask(null)}>
+        <TouchableWithoutFeedback onPress={() => setSelectedMantencion(null)}>
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
-              {selectedTask && (
+              {selectedMantencion && (
                 <>
-                  <Text style={styles.modalTitle}>{selectedTask.vehicle}</Text>
+                  <Text style={styles.modalTitle}>Detalles de Mantención</Text>
                   <View style={styles.modalInfo}>
-                    <Ionicons name="calendar" size={24} color={theme.colors.primary} />
-                    <Text style={styles.modalText}>Fecha: {selectedTask.date}</Text>
-                  </View>
-                  <Text style={styles.modalText}>Descripción: {selectedTask.description}</Text>
-                  <View style={styles.modalButtons}>
-                    <TouchableOpacity
-                      style={[styles.modalButton, styles.modalButtonEdit]}
-                      onPress={() => {
-                        router.push(`/modals/formulario_mantenciones?id=${selectedTask.id}`);
-                        setSelectedTask(null);
-                      }}
-                    >
-                      <Ionicons name="create" size={20} color="white" />
-                      <Text style={styles.modalButtonText}>Editar</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.modalButton, styles.modalButtonDelete]}
-                      onPress={() => {
-                        handleDelete(selectedTask.id);
-                        setSelectedTask(null);
-                      }}
-                    >
-                      <Ionicons name="trash" size={20} color="white" />
-                      <Text style={styles.modalButtonText}>Eliminar</Text>
-                    </TouchableOpacity>
+                    <Text style={styles.modalText}>Orden: {selectedMantencion.ord_trabajo}</Text>
+                    <Text style={styles.modalText}>Factura: {selectedMantencion.n_factura}</Text>
+                    <Text style={styles.modalText}>Costo: ${selectedMantencion.cost_ser}</Text>
+                    <Text style={styles.modalText}>Estado: {selectedMantencion.estado_mantencion}</Text>
+                    <Text style={styles.modalText}>Patente: {selectedMantencion.patente}</Text>
+                    <Text style={styles.modalText}>Responsable: {selectedMantencion.personal_responsable}</Text>
+                    <Text style={styles.modalText}>Taller: {selectedMantencion.taller}</Text>
                   </View>
                 </>
               )}
@@ -136,6 +131,11 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: 'white',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   listContent: {
     padding: 15,
@@ -207,39 +207,11 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
   },
   modalInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 15,
+    width: '100%',
   },
   modalText: {
-    fontSize: 18,
+    fontSize: 16,
     color: theme.colors.textSecondary,
-    marginLeft: 10,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    marginTop: 20,
-  },
-  modalButton: {
-    flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 8,
-    marginHorizontal: 5,
-  },
-  modalButtonEdit: {
-    backgroundColor: theme.colors.primary,
-  },
-  modalButtonDelete: {
-    backgroundColor: theme.colors.danger,
-  },
-  modalButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-    marginLeft: 5,
+    marginBottom: 10,
   },
 });
