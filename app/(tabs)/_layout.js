@@ -46,7 +46,7 @@ export default function AppLayout() {
           title: "Inicio",
           tabBarIcon: ({ color, focused }) => (
             <View style={{ alignItems: 'center' }}>
-              <TabBarIcon name={focused ? "home" : "home-outline"} color={color} />
+              <TabBarIcon name={focused ? "home" : "home-outline"} color={'#ff3b3b'} />
               <TabBarLabel label="Inicio" focused={focused} />
             </View>
           ),
@@ -59,7 +59,7 @@ export default function AppLayout() {
           title: "Combustible",
           tabBarIcon: ({ color, focused }) => (
             <View style={{ alignItems: 'center' }}>
-              <TabBarIcon name={focused ? "flame" : "flame-outline"} color={color} />
+              <TabBarIcon name={focused ? "flame" : "flame-outline"} color={'#ff3b3b'} />
               <TabBarLabel label="Combustible" focused={focused} />
             </View>
           ),
@@ -72,7 +72,7 @@ export default function AppLayout() {
           title: "Mantenciones",
           tabBarIcon: ({ color, focused }) => (
             <View style={{ alignItems: 'center' }}>
-              <TabBarIcon name={focused ? "construct" : "construct-outline"} color={color} />
+              <TabBarIcon name={focused ? "construct" : "construct-outline"} color={'#ff3b3b'} />
               <TabBarLabel label="Mantenciones" focused={focused} />
             </View>
           ),
@@ -85,7 +85,7 @@ export default function AppLayout() {
           title: "Servicios",
           tabBarIcon: ({ color, focused }) => (
             <View style={{ alignItems: 'center' }}>
-              <TabBarIcon name={focused ? "list" : "list-outline"} color={color} />
+              <TabBarIcon name={focused ? "list" : "list-outline"} color={'#ff3b3b'} />
               <TabBarLabel label="Servicios" focused={focused} />
             </View>
           ),
@@ -99,7 +99,7 @@ export default function AppLayout() {
           title: "Cuenta",
           tabBarIcon: ({ color, focused }) => (
             <View style={{ alignItems: 'center' }}>
-              <TabBarIcon name={focused ? "person" : "person-outline"} color={color} />
+              <TabBarIcon name={focused ? "person" : "person-outline"} color={'#ff3b3b'} />
               <TabBarLabel label="Cuenta" focused={focused} />
             </View>
           ),

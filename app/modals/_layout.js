@@ -1,8 +1,7 @@
-// app/modals/_layout.js
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Stack } from 'expo-router';
-import theme from '../theme';  // Importa el tema
+import React from 'react'
+import { View, StyleSheet } from 'react-native'
+import { Stack } from 'expo-router'
+import theme from '../theme'
 
 export default function ModalsLayout() {
   return (
@@ -14,12 +13,29 @@ export default function ModalsLayout() {
           },
           headerTintColor: theme.colors.textPrimary,
           headerTitleStyle: {
-            fontWeight: 'bold',
+            fontWeight: '600',
+            fontSize: 18,
+            textAlign: 'center',
           },
+          headerTitleAlign: 'center',
         }}
-      />
+      >
+        <Stack.Screen 
+          name="formulario_combustible" 
+          options={{
+            title: "Nueva Carga de Combustible"
+          }}
+        />
+        <Stack.Screen 
+          name="formulario_mantenciones" 
+          options={{
+            title: "Nueva Mantención"
+          }}
+        />
+        {/* Agrega más Stack.Screen componentes para otras rutas */}
+      </Stack>
     </View>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
@@ -27,4 +43,4 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.background,
   },
-});
+})
