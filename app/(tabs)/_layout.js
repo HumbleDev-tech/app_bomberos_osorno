@@ -4,8 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { View, Text, Platform } from 'react-native';
 import theme from '../theme';
 
-const TabBarIcon = ({ name, color }) => (
-  <Ionicons name={name} size={24} color={color} />
+const TabBarIcon = ({ name }) => (
+  <Ionicons name={name} size={24} color={'#ff3b3b'} />
 );
 
 const TabBarLabel = ({ label, focused }) => (
@@ -46,7 +46,7 @@ export default function AppLayout() {
           title: "Inicio",
           tabBarIcon: ({ color, focused }) => (
             <View style={{ alignItems: 'center' }}>
-              <TabBarIcon name={focused ? "home" : "home-outline"} color={'#ff3b3b'} />
+              <TabBarIcon name={focused ? "home" : "home-outline"} color={color} />
               <TabBarLabel label="Inicio" focused={focused} />
             </View>
           ),
@@ -59,7 +59,7 @@ export default function AppLayout() {
           title: "Combustible",
           tabBarIcon: ({ color, focused }) => (
             <View style={{ alignItems: 'center' }}>
-              <TabBarIcon name={focused ? "flame" : "flame-outline"} color={'#ff3b3b'} />
+              <TabBarIcon name={focused ? "flame" : "flame-outline"} color={color} />
               <TabBarLabel label="Combustible" focused={focused} />
             </View>
           ),
@@ -72,7 +72,7 @@ export default function AppLayout() {
           title: "Mantenciones",
           tabBarIcon: ({ color, focused }) => (
             <View style={{ alignItems: 'center' }}>
-              <TabBarIcon name={focused ? "construct" : "construct-outline"} color={'#ff3b3b'} />
+              <TabBarIcon name={focused ? "construct" : "construct-outline"} color={color} />
               <TabBarLabel label="Mantenciones" focused={focused} />
             </View>
           ),
@@ -85,7 +85,7 @@ export default function AppLayout() {
           title: "Servicios",
           tabBarIcon: ({ color, focused }) => (
             <View style={{ alignItems: 'center' }}>
-              <TabBarIcon name={focused ? "list" : "list-outline"} color={'#ff3b3b'} />
+              <TabBarIcon name={focused ? "list" : "list-outline"} color={color} />
               <TabBarLabel label="Servicios" focused={focused} />
             </View>
           ),
@@ -99,7 +99,7 @@ export default function AppLayout() {
           title: "Cuenta",
           tabBarIcon: ({ color, focused }) => (
             <View style={{ alignItems: 'center' }}>
-              <TabBarIcon name={focused ? "person" : "person-outline"} color={'#ff3b3b'} />
+              <TabBarIcon name={focused ? "person" : "person-outline"} color={color} />
               <TabBarLabel label="Cuenta" focused={focused} />
             </View>
           ),
