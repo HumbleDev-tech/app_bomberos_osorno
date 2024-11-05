@@ -1,28 +1,49 @@
 // app/(tabs)/mantenciones.js
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Modal, TouchableWithoutFeedback, StatusBar, ActivityIndicator } from 'react-native';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  FlatList, 
+  TouchableOpacity, 
+  Alert, 
+  Modal, 
+  TouchableWithoutFeedback, 
+  StatusBar, 
+  ActivityIndicator 
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { obtenerMantenciones } from '../services/mantencion';
 import theme from '../theme';
 
 export default function Mantenciones() {
   const [mantenciones, setMantenciones] = useState([]);
   const [selectedMantencion, setSelectedMantencion] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
 
-  const cargarMantenciones = async () => {
-    setLoading(true);
+  const cargarMantenciones = async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     try {
-      const response = await fetch('http://18.117.109.85/api/mantencion');
-      const data = await response.json();
+      const data = await obtenerMantenciones();
       setMantenciones(data);
     } catch (error) {
       console.error('Error cargando mantenciones:', error);
-      Alert.alert('Error', 'No se pudieron cargar las mantenciones');
+      Alert.alert(
+        'Error', 
+        'No se pudieron cargar las mantenciones'
+      );
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    cargarMantenciones(false);
   };
 
   useEffect(() => {
@@ -75,8 +96,8 @@ export default function Mantenciones() {
           renderItem={renderItem}
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.listContent}
-          onRefresh={cargarMantenciones}
-          refreshing={loading}
+          onRefresh={onRefresh}
+          refreshing={refreshing}
         />
       )}
       <TouchableOpacity
@@ -85,7 +106,6 @@ export default function Mantenciones() {
       >
         <Ionicons name="add" size={24} color="white" />
       </TouchableOpacity>
-
       <Modal
         visible={!!selectedMantencion}
         transparent={true}
@@ -198,7 +218,6 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.cardBackground,
     borderRadius: 12,
     padding: 20,
-    alignItems: 'center',
   },
   modalTitle: {
     fontSize: 24,

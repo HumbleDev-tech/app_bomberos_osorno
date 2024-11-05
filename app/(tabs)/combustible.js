@@ -1,57 +1,77 @@
+// app/(tabs)/combustible.js
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Modal, TouchableWithoutFeedback, StatusBar } from 'react-native';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  FlatList, 
+  TouchableOpacity, 
+  Alert, 
+  Modal, 
+  TouchableWithoutFeedback, 
+  StatusBar, 
+  ActivityIndicator, 
+  Image 
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { obtenerCargasCombustible } from '../services/carga_combustible';
 import theme from '../theme';
 
 export default function Combustible() {
-  const [fuelLoads, setFuelLoads] = useState([]);
-  const [selectedLoad, setSelectedLoad] = useState(null);
+  const [cargas, setCargas] = useState([]);
+  const [selectedCarga, setSelectedCarga] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
 
-  useEffect(() => {
-    const fetchFuelLoads = async () => {
-      try {
-        const storedFuelLoads = await AsyncStorage.getItem('fuelLoads');
-        const fuelLoads = storedFuelLoads ? JSON.parse(storedFuelLoads) : [];
-        setFuelLoads(fuelLoads);
-      } catch (error) {
-        console.error('Error fetching fuel loads:', error);
-      }
-    };
-    fetchFuelLoads();
-  }, []);
-
-  const handleCardPress = (load) => {
-    setSelectedLoad(load);
-  };
-
-  const handleDelete = async (id) => {
+  const cargarCombustible = async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     try {
-      const updatedFuelLoads = fuelLoads.filter(load => load.id !== id);
-      setFuelLoads(updatedFuelLoads);
-      await AsyncStorage.setItem('fuelLoads', JSON.stringify(updatedFuelLoads));
-      setSelectedLoad(null);
+      const data = await obtenerCargasCombustible();
+      setCargas(data);
     } catch (error) {
-      console.error('Error deleting fuel load:', error);
+      console.error('Error cargando cargas:', error);
+      Alert.alert(
+        'Error', 
+        'No se pudieron cargar las cargas de combustible'
+      );
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
   };
 
+  const onRefresh = () => {
+    setRefreshing(true);
+    cargarCombustible(false);
+  };
+
+  useEffect(() => {
+    cargarCombustible();
+  }, []);
+
   const renderItem = ({ item }) => (
-    <TouchableOpacity style={styles.card} onPress={() => handleCardPress(item)}>
+    <TouchableOpacity 
+      style={styles.card} 
+      onPress={() => setSelectedCarga(item)}
+    >
       <View style={styles.cardHeader}>
         <Ionicons name="car" size={24} color={theme.colors.primary} />
-        <Text style={styles.cardTitle}>{item.vehicle}</Text>
+        <Text style={styles.cardTitle}>Patente: {item.patente}</Text>
       </View>
       <View style={styles.cardContent}>
         <View style={styles.cardInfo}>
           <Ionicons name="water" size={18} color={theme.colors.textSecondary} />
-          <Text style={styles.cardText}>{item.amount} L</Text>
+          <Text style={styles.cardText}>Litros: {item.litros}</Text>
         </View>
         <View style={styles.cardInfo}>
-          <Ionicons name="calendar" size={18} color={theme.colors.textSecondary} />
-          <Text style={styles.cardDate}>{item.date}</Text>
+          <Ionicons name="cash" size={18} color={theme.colors.textSecondary} />
+          <Text style={styles.cardText}>Valor: ${item.valor_mon}</Text>
+        </View>
+        <View style={styles.cardInfo}>
+          <Ionicons name="barcode" size={18} color={theme.colors.textSecondary} />
+          <Text style={styles.cardText}>Código: {item.codigo}</Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -61,14 +81,22 @@ export default function Combustible() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Registro de Combustible</Text>
+        <Text style={styles.headerTitle}>Cargas de Combustible</Text>
       </View>
-      <FlatList
-        data={fuelLoads}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-      />
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+        </View>
+      ) : (
+        <FlatList
+          data={cargas}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id.toString()}
+          contentContainerStyle={styles.listContent}
+          onRefresh={onRefresh}
+          refreshing={refreshing}
+        />
+      )}
       <TouchableOpacity
         style={styles.fab}
         onPress={() => router.push('/modals/formulario_combustible')}
@@ -76,24 +104,31 @@ export default function Combustible() {
         <Ionicons name="add" size={24} color="white" />
       </TouchableOpacity>
       <Modal
-        visible={!!selectedLoad}
+        visible={!!selectedCarga}
         transparent={true}
         animationType="fade"
-        onRequestClose={() => setSelectedLoad(null)}
+        onRequestClose={() => setSelectedCarga(null)}
       >
-        <TouchableWithoutFeedback onPress={() => setSelectedLoad(null)}>
+        <TouchableWithoutFeedback onPress={() => setSelectedCarga(null)}>
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
-              {selectedLoad && (
+              {selectedCarga && (
                 <>
-                  <Text style={styles.modalTitle}>{selectedLoad.vehicle}</Text>
+                  <Text style={styles.modalTitle}>Detalles de Carga</Text>
                   <View style={styles.modalInfo}>
-                    <Ionicons name="water" size={24} color={theme.colors.primary} />
-                    <Text style={styles.modalText}>Cantidad: {selectedLoad.amount} L</Text>
-                  </View>
-                  <View style={styles.modalInfo}>
-                    <Ionicons name="calendar" size={24} color={theme.colors.primary} />
-                    <Text style={styles.modalText}>Fecha: {selectedLoad.date}</Text>
+                    <Text style={styles.modalText}>Patente: {selectedCarga.patente}</Text>
+                    <Text style={styles.modalText}>Litros: {selectedCarga.litros}</Text>
+                    <Text style={styles.modalText}>Valor: ${selectedCarga.valor_mon}</Text>
+                    <Text style={styles.modalText}>Código: {selectedCarga.codigo}</Text>
+                    {selectedCarga.img_url ? (
+                      <Image 
+                        source={{ uri: selectedCarga.img_url }} 
+                        style={styles.modalImage} 
+                        resizeMode="contain" 
+                      />
+                    ) : (
+                      <Text style={styles.modalText}>Sin comprobante adjunto</Text>
+                    )}
                   </View>
                 </>
               )}
@@ -120,12 +155,17 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: 'white',
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   listContent: {
     padding: 15,
   },
   card: {
     backgroundColor: theme.colors.cardBackground,
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 15,
     marginBottom: 15,
     shadowColor: theme.colors.shadowColor,
@@ -158,11 +198,6 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     marginLeft: 10,
   },
-  cardDate: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    marginLeft: 10,
-  },
   fab: {
     position: 'absolute',
     bottom: 20,
@@ -186,7 +221,6 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.cardBackground,
     borderRadius: 12,
     padding: 20,
-    alignItems: 'center',
   },
   modalTitle: {
     fontSize: 24,
@@ -195,13 +229,16 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
   },
   modalInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 15,
+    width: '100%',
   },
   modalText: {
-    fontSize: 18,
+    fontSize: 16,
     color: theme.colors.textSecondary,
-    marginLeft: 10,
+    marginBottom: 10,
+  },
+  modalImage: {
+    width: '100%',
+    height: 200,
+    marginTop: 10,
   },
 });
