@@ -24,3 +24,5 @@ export const actualizarCargaCombustible = (id, data) => handleRequest(`/carga_co
 export const eliminarCargaCombustible = (id) => handleRequest(`/carga_combustible/${id}`, {
   method: 'DELETE'
 });
+
+export default obtenerCargasCombustible;

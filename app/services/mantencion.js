@@ -18,3 +18,5 @@ export const actualizarMantencion = (id, data) => handleRequest(`/mantencion/${i
 export const eliminarMantencion = (id) => handleRequest(`/mantencion/${id}`, {
   method: 'DELETE'
 });
+
+export default obtenerMantenciones;

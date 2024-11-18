@@ -11,18 +11,22 @@ import {
   TouchableWithoutFeedback, 
   StatusBar, 
   ActivityIndicator, 
-  Image 
+  Image,
+  TextInput 
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { obtenerCargasCombustible } from '../services/carga_combustible';
 import theme from '../theme';
+import { Picker } from '@react-native-picker/picker';
 
 export default function Combustible() {
   const [cargas, setCargas] = useState([]);
   const [selectedCarga, setSelectedCarga] = useState(null);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortCriteria, setSortCriteria] = useState('nombre');
   const router = useRouter();
 
   const cargarCombustible = async (showLoading = true) => {
@@ -51,14 +55,32 @@ export default function Combustible() {
     cargarCombustible();
   }, []);
 
+  const filteredCargas = cargas.filter(carga =>
+    (carga.bitacora && carga.bitacora.conductor_nombre && carga.bitacora.conductor_nombre.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (carga.bitacora && carga.bitacora.conductor_apellido && carga.bitacora.conductor_apellido.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  const sortedCargas = [...filteredCargas].sort((a, b) => {
+    if (sortCriteria === 'nombre') {
+      return a.bitacora.conductor_nombre.localeCompare(b.bitacora.conductor_nombre);
+    } else if (sortCriteria === 'apellido') {
+      return a.bitacora.conductor_apellido.localeCompare(b.bitacora.conductor_apellido);
+    } else if (sortCriteria === 'litros') {
+      return b.litros - a.litros;
+    } else if (sortCriteria === 'valor') {
+      return b.valor_mon - a.valor_mon;
+    }
+    return 0;
+  });
+
   const renderItem = ({ item }) => (
     <TouchableOpacity 
       style={styles.card} 
       onPress={() => setSelectedCarga(item)}
     >
       <View style={styles.cardHeader}>
-        <Ionicons name="car" size={24} color={theme.colors.primary} />
-        <Text style={styles.cardTitle}>Patente: {item.patente}</Text>
+        <Ionicons name="person" size={24} color={theme.colors.primary} />
+        <Text style={styles.cardTitle}>Conductor: {item.bitacora.conductor_nombre} {item.bitacora.conductor_apellido}</Text>
       </View>
       <View style={styles.cardContent}>
         <View style={styles.cardInfo}>
@@ -71,7 +93,7 @@ export default function Combustible() {
         </View>
         <View style={styles.cardInfo}>
           <Ionicons name="barcode" size={18} color={theme.colors.textSecondary} />
-          <Text style={styles.cardText}>Código: {item.codigo}</Text>
+          <Text style={styles.cardText}>Código: {item.id}</Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -83,13 +105,29 @@ export default function Combustible() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Cargas de Combustible</Text>
       </View>
+      <TextInput
+        style={styles.searchBar}
+        placeholder="Buscar por nombre o apellido..."
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+      />
+      <Picker
+        selectedValue={sortCriteria}
+        style={styles.picker}
+        onValueChange={(itemValue) => setSortCriteria(itemValue)}
+      >
+        <Picker.Item label="Ordenar por Nombre" value="nombre" />
+        <Picker.Item label="Ordenar por Apellido" value="apellido" />
+        <Picker.Item label="Ordenar por Litros" value="litros" />
+        <Picker.Item label="Ordenar por Valor" value="valor" />
+      </Picker>
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
         </View>
       ) : (
         <FlatList
-          data={cargas}
+          data={sortedCargas}
           renderItem={renderItem}
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.listContent}
@@ -116,7 +154,7 @@ export default function Combustible() {
                 <>
                   <Text style={styles.modalTitle}>Detalles de Carga</Text>
                   <View style={styles.modalInfo}>
-                    <Text style={styles.modalText}>Patente: {selectedCarga.patente}</Text>
+                    <Text style={styles.modalText}>Conductor: {selectedCarga.bitacora.conductor_nombre} {selectedCarga.bitacora.conductor_apellido}</Text>
                     <Text style={styles.modalText}>Litros: {selectedCarga.litros}</Text>
                     <Text style={styles.modalText}>Valor: ${selectedCarga.valor_mon}</Text>
                     <Text style={styles.modalText}>Código: {selectedCarga.codigo}</Text>
@@ -240,5 +278,18 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 200,
     marginTop: 10,
+  },
+  searchBar: {
+    backgroundColor: 'white',
+    padding: 10,
+    margin: 15,
+    borderRadius: 8,
+    borderColor: theme.colors.primary,
+    borderWidth: 1,
+  },
+  picker: {
+    height: 50,
+    width: '100%',
+    margin: 15,
   },
 });

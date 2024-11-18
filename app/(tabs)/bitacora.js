@@ -1,4 +1,3 @@
-// app/(tabs)/mantenciones.js
 import React, { useState, useEffect } from 'react';
 import { 
   View, 
@@ -10,34 +9,34 @@ import {
   Modal, 
   TouchableWithoutFeedback, 
   StatusBar, 
-  ActivityIndicator,
-  TextInput
+  ActivityIndicator, 
+  TextInput 
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { obtenerMantenciones } from '../services/mantencion';
+import { obtenerBitacoras } from '../services/bitacora';
 import theme from '../theme';
 import { Picker } from '@react-native-picker/picker';
 
-export default function Mantenciones() {
-  const [mantenciones, setMantenciones] = useState([]);
-  const [selectedMantencion, setSelectedMantencion] = useState(null);
+export default function Bitacora() {
+  const [bitacoras, setBitacoras] = useState([]);
+  const [selectedBitacora, setSelectedBitacora] = useState(null);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortCriteria, setSortCriteria] = useState('conductor');
   const router = useRouter();
 
-  const cargarMantenciones = async (showLoading = true) => {
+  const cargarBitacoras = async (showLoading = true) => {
     if (showLoading) setLoading(true);
     try {
-      const data = await obtenerMantenciones();
-      setMantenciones(data);
+      const data = await obtenerBitacoras();
+      setBitacoras(data);
     } catch (error) {
-      console.error('Error cargando mantenciones:', error);
+      console.error('Error cargando bitacoras:', error);
       Alert.alert(
         'Error', 
-        'No se pudieron cargar las mantenciones'
+        'No se pudieron cargar las bitacoras'
       );
     } finally {
       setLoading(false);
@@ -47,25 +46,25 @@ export default function Mantenciones() {
 
   const onRefresh = () => {
     setRefreshing(true);
-    cargarMantenciones(false);
+    cargarBitacoras(false);
   };
 
   useEffect(() => {
-    cargarMantenciones();
+    cargarBitacoras();
   }, []);
 
-  const filteredMantenciones = mantenciones.filter(mantencion =>
-    (mantencion.bitacora && mantencion.bitacora.conductor && mantencion.bitacora.conductor.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    (mantencion.patente && mantencion.patente.toLowerCase().includes(searchQuery.toLowerCase()))
+  const filteredBitacoras = bitacoras.filter(bitacora =>
+    (bitacora.conductor && bitacora.conductor.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (bitacora.patente && bitacora.patente.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const sortedMantenciones = [...filteredMantenciones].sort((a, b) => {
+  const sortedBitacoras = [...filteredBitacoras].sort((a, b) => {
     if (sortCriteria === 'conductor') {
-      return a.bitacora.conductor.localeCompare(b.bitacora.conductor);
+      return a.conductor.localeCompare(b.conductor);
     } else if (sortCriteria === 'patente') {
       return a.patente.localeCompare(b.patente);
-    } else if (sortCriteria === 'estado') {
-      return a.estado_mantencion.localeCompare(b.estado_mantencion);
+    } else if (sortCriteria === 'fecha') {
+      return new Date(b.fecha) - new Date(a.fecha);
     }
     return 0;
   });
@@ -73,11 +72,11 @@ export default function Mantenciones() {
   const renderItem = ({ item }) => (
     <TouchableOpacity 
       style={styles.card} 
-      onPress={() => setSelectedMantencion(item)}
+      onPress={() => setSelectedBitacora(item)}
     >
       <View style={styles.cardHeader}>
-        <Ionicons name="construct" size={24} color={theme.colors.primary} />
-        <Text style={styles.cardTitle}>Orden: {item.ord_trabajo}</Text>
+        <Ionicons name="document-text" size={24} color={theme.colors.primary} />
+        <Text style={styles.cardTitle}>Conductor: {item.conductor}</Text>
       </View>
       <View style={styles.cardContent}>
         <View style={styles.cardInfo}>
@@ -85,16 +84,12 @@ export default function Mantenciones() {
           <Text style={styles.cardText}>Patente: {item.patente}</Text>
         </View>
         <View style={styles.cardInfo}>
-          <Ionicons name="person" size={18} color={theme.colors.textSecondary} />
-          <Text style={styles.cardText}>Conductor: {item.bitacora.conductor}</Text>
+          <Ionicons name="calendar" size={18} color={theme.colors.textSecondary} />
+          <Text style={styles.cardText}>Fecha: {item.fecha}</Text>
         </View>
         <View style={styles.cardInfo}>
-          <Ionicons name="build" size={18} color={theme.colors.textSecondary} />
-          <Text style={styles.cardText}>Taller: {item.taller}</Text>
-        </View>
-        <View style={styles.cardInfo}>
-          <Ionicons name="alert-circle" size={18} color={theme.colors.textSecondary} />
-          <Text style={styles.cardText}>Estado: {item.estado_mantencion}</Text>
+          <Ionicons name="time" size={18} color={theme.colors.textSecondary} />
+          <Text style={styles.cardText}>Hora: {item.hora}</Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -104,7 +99,7 @@ export default function Mantenciones() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Mantenciones</Text>
+        <Text style={styles.headerTitle}>Bitacoras</Text>
       </View>
       <TextInput
         style={styles.searchBar}
@@ -119,7 +114,7 @@ export default function Mantenciones() {
       >
         <Picker.Item label="Ordenar por Conductor" value="conductor" />
         <Picker.Item label="Ordenar por Patente" value="patente" />
-        <Picker.Item label="Ordenar por Estado" value="estado" />
+        <Picker.Item label="Ordenar por Fecha" value="fecha" />
       </Picker>
       {loading ? (
         <View style={styles.loadingContainer}>
@@ -127,7 +122,7 @@ export default function Mantenciones() {
         </View>
       ) : (
         <FlatList
-          data={sortedMantenciones}
+          data={sortedBitacoras}
           renderItem={renderItem}
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.listContent}
@@ -137,30 +132,28 @@ export default function Mantenciones() {
       )}
       <TouchableOpacity
         style={styles.fab}
-        onPress={() => router.push('/modals/formulario_mantenciones')}
+        onPress={() => router.push('/modals/formulario_bitacora')}
       >
         <Ionicons name="add" size={24} color="white" />
       </TouchableOpacity>
       <Modal
-        visible={!!selectedMantencion}
+        visible={!!selectedBitacora}
         transparent={true}
         animationType="fade"
-        onRequestClose={() => setSelectedMantencion(null)}
+        onRequestClose={() => setSelectedBitacora(null)}
       >
-        <TouchableWithoutFeedback onPress={() => setSelectedMantencion(null)}>
+        <TouchableWithoutFeedback onPress={() => setSelectedBitacora(null)}>
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
-              {selectedMantencion && (
+              {selectedBitacora && (
                 <>
-                  <Text style={styles.modalTitle}>Detalles de Mantención</Text>
+                  <Text style={styles.modalTitle}>Detalles de Bitacora</Text>
                   <View style={styles.modalInfo}>
-                    <Text style={styles.modalText}>Orden: {selectedMantencion.ord_trabajo}</Text>
-                    <Text style={styles.modalText}>Factura: {selectedMantencion.n_factura}</Text>
-                    <Text style={styles.modalText}>Costo: ${selectedMantencion.cost_ser}</Text>
-                    <Text style={styles.modalText}>Estado: {selectedMantencion.estado_mantencion}</Text>
-                    <Text style={styles.modalText}>Patente: {selectedMantencion.patente}</Text>
-                    <Text style={styles.modalText}>Responsable: {selectedMantencion.personal_responsable}</Text>
-                    <Text style={styles.modalText}>Taller: {selectedMantencion.taller}</Text>
+                    <Text style={styles.modalText}>Conductor: {selectedBitacora.conductor}</Text>
+                    <Text style={styles.modalText}>Patente: {selectedBitacora.patente}</Text>
+                    <Text style={styles.modalText}>Fecha: {selectedBitacora.fecha}</Text>
+                    <Text style={styles.modalText}>Hora: {selectedBitacora.hora}</Text>
+                    <Text style={styles.modalText}>Descripción: {selectedBitacora.descripcion}</Text>
                   </View>
                 </>
               )}
