@@ -1,4 +1,3 @@
-// app/(tabs)/combustible.js
 import React, { useState, useEffect } from 'react';
 import { 
   View, 
@@ -10,9 +9,11 @@ import {
   Modal, 
   TouchableWithoutFeedback, 
   StatusBar, 
-  ActivityIndicator, 
+  ActivityIndicator,
   Image,
-  TextInput 
+  TextInput,
+  SafeAreaView,
+  Animated
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,6 +28,7 @@ export default function Combustible() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortCriteria, setSortCriteria] = useState('nombre');
+  const [expandedId, setExpandedId] = useState(null);
   const router = useRouter();
 
   const cargarCombustible = async (showLoading = true) => {
@@ -36,10 +38,7 @@ export default function Combustible() {
       setCargas(data);
     } catch (error) {
       console.error('Error cargando cargas:', error);
-      Alert.alert(
-        'Error', 
-        'No se pudieron cargar las cargas de combustible'
-      );
+      Alert.alert('Error', 'No se pudieron cargar las cargas de combustible');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -73,74 +72,112 @@ export default function Combustible() {
     return 0;
   });
 
-  const renderItem = ({ item }) => (
-    <TouchableOpacity 
-      style={styles.card} 
-      onPress={() => setSelectedCarga(item)}
-    >
-      <View style={styles.cardHeader}>
-        <Ionicons name="person" size={24} color={theme.colors.primary} />
-        <Text style={styles.cardTitle}>Conductor: {item.bitacora.conductor_nombre} {item.bitacora.conductor_apellido}</Text>
-      </View>
-      <View style={styles.cardContent}>
-        <View style={styles.cardInfo}>
-          <Ionicons name="water" size={18} color={theme.colors.textSecondary} />
-          <Text style={styles.cardText}>Litros: {item.litros}</Text>
+  const renderItem = ({ item }) => {
+    const isExpanded = expandedId === item.id;
+    
+    return (
+      <TouchableOpacity 
+        style={[styles.card, isExpanded && styles.cardExpanded]} 
+        onPress={() => setExpandedId(isExpanded ? null : item.id)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.cardHeader}>
+          <View style={styles.cardHeaderIcon}>
+            <Ionicons name="person-outline" size={20} color={theme.colors.primary} />
+          </View>
+          <Text style={styles.cardTitle}>{item.bitacora.conductor_nombre} {item.bitacora.conductor_apellido}</Text>
+          <TouchableOpacity 
+            style={styles.detailsButton}
+            onPress={() => setSelectedCarga(item)}
+          >
+            <Ionicons name="information-circle-outline" size={24} color={theme.colors.primary} />
+          </TouchableOpacity>
         </View>
-        <View style={styles.cardInfo}>
-          <Ionicons name="cash" size={18} color={theme.colors.textSecondary} />
-          <Text style={styles.cardText}>Valor: ${item.valor_mon}</Text>
+        <View style={styles.cardContent}>
+          <View style={styles.cardRow}>
+            <Ionicons name="water-outline" size={16} color={theme.colors.textSecondary} />
+            <Text style={styles.cardText}>Litros: {item.litros}</Text>
+          </View>
+          <View style={styles.cardRow}>
+            <Ionicons name="cash-outline" size={16} color={theme.colors.textSecondary} />
+            <Text style={styles.cardText}>Valor: ${item.valor_mon}</Text>
+          </View>
+          <View style={styles.cardRow}>
+            <Ionicons name="barcode-outline" size={16} color={theme.colors.textSecondary} />
+            <Text style={styles.cardText}>Código: {item.id}</Text>
+          </View>
+          {isExpanded && item.img_url && (
+            <View style={styles.cardImageContainer}>
+              <Image 
+                source={{ uri: item.img_url }} 
+                style={styles.cardImage}
+                resizeMode="cover"
+              />
+            </View>
+          )}
         </View>
-        <View style={styles.cardInfo}>
-          <Ionicons name="barcode" size={18} color={theme.colors.textSecondary} />
-          <Text style={styles.cardText}>Código: {item.id}</Text>
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={theme.colors.primary} />
+      
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Cargas de Combustible</Text>
       </View>
-      <TextInput
-        style={styles.searchBar}
-        placeholder="Buscar por nombre o apellido..."
-        value={searchQuery}
-        onChangeText={setSearchQuery}
-      />
-      <Picker
-        selectedValue={sortCriteria}
-        style={styles.picker}
-        onValueChange={(itemValue) => setSortCriteria(itemValue)}
-      >
-        <Picker.Item label="Ordenar por Nombre" value="nombre" />
-        <Picker.Item label="Ordenar por Apellido" value="apellido" />
-        <Picker.Item label="Ordenar por Litros" value="litros" />
-        <Picker.Item label="Ordenar por Valor" value="valor" />
-      </Picker>
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
+
+      <View style={styles.content}>
+        <View style={styles.searchWrapper}>
+          <View style={styles.searchContainer}>
+            <Ionicons name="search-outline" size={20} color={theme.colors.textSecondary} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Buscar por nombre o apellido..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholderTextColor={theme.colors.textSecondary}
+            />
+          </View>
         </View>
-      ) : (
-        <FlatList
-          data={sortedCargas}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.id.toString()}
-          contentContainerStyle={styles.listContent}
-          onRefresh={onRefresh}
-          refreshing={refreshing}
-        />
-      )}
+
+        <View style={styles.pickerContainer}>
+          <Picker
+            selectedValue={sortCriteria}
+            style={styles.picker}
+            onValueChange={(itemValue) => setSortCriteria(itemValue)}
+          >
+            <Picker.Item label="Ordenar por Nombre" value="nombre" />
+            <Picker.Item label="Ordenar por Apellido" value="apellido" />
+            <Picker.Item label="Ordenar por Litros" value="litros" />
+            <Picker.Item label="Ordenar por Valor" value="valor" />
+          </Picker>
+        </View>
+
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={theme.colors.primary} />
+          </View>
+        ) : (
+          <FlatList
+            data={sortedCargas}
+            renderItem={renderItem}
+            keyExtractor={(item) => item.id.toString()}
+            contentContainerStyle={styles.listContent}
+            onRefresh={onRefresh}
+            refreshing={refreshing}
+          />
+        )}
+      </View>
+
       <TouchableOpacity
         style={styles.fab}
         onPress={() => router.push('/modals/formulario_combustible')}
       >
-        <Ionicons name="add" size={24} color="white" />
+        <Ionicons name="add-outline" size={24} color="white" />
       </TouchableOpacity>
+
       <Modal
         visible={!!selectedCarga}
         transparent={true}
@@ -149,49 +186,104 @@ export default function Combustible() {
       >
         <TouchableWithoutFeedback onPress={() => setSelectedCarga(null)}>
           <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              {selectedCarga && (
-                <>
-                  <Text style={styles.modalTitle}>Detalles de Carga</Text>
-                  <View style={styles.modalInfo}>
-                    <Text style={styles.modalText}>Conductor: {selectedCarga.bitacora.conductor_nombre} {selectedCarga.bitacora.conductor_apellido}</Text>
-                    <Text style={styles.modalText}>Litros: {selectedCarga.litros}</Text>
-                    <Text style={styles.modalText}>Valor: ${selectedCarga.valor_mon}</Text>
-                    <Text style={styles.modalText}>Código: {selectedCarga.codigo}</Text>
-                    {selectedCarga.img_url ? (
-                      <Image 
-                        source={{ uri: selectedCarga.img_url }} 
-                        style={styles.modalImage} 
-                        resizeMode="contain" 
-                      />
-                    ) : (
-                      <Text style={styles.modalText}>Sin comprobante adjunto</Text>
-                    )}
-                  </View>
-                </>
-              )}
-            </View>
+            <TouchableWithoutFeedback>
+              <View style={styles.modalContent}>
+                {selectedCarga && (
+                  <>
+                    <View style={styles.modalHeader}>
+                      <Text style={styles.modalTitle}>Detalles de Carga</Text>
+                      <TouchableOpacity 
+                        onPress={() => setSelectedCarga(null)}
+                        style={styles.closeButton}
+                      >
+                        <Ionicons name="close" size={24} color="#666" />
+                      </TouchableOpacity>
+                    </View>
+                    <View style={styles.modalInfo}>
+                      <View style={styles.modalRow}>
+                        <Ionicons name="person" size={20} color={theme.colors.textSecondary} />
+                        <Text style={styles.modalText}>Conductor: {selectedCarga.bitacora.conductor_nombre} {selectedCarga.bitacora.conductor_apellido}</Text>
+                      </View>
+                      <View style={styles.modalRow}>
+                        <Ionicons name="water" size={20} color={theme.colors.textSecondary} />
+                        <Text style={styles.modalText}>Litros: {selectedCarga.litros}</Text>
+                      </View>
+                      <View style={styles.modalRow}>
+                        <Ionicons name="cash" size={20} color={theme.colors.textSecondary} />
+                        <Text style={styles.modalText}>Valor: ${selectedCarga.valor_mon}</Text>
+                      </View>
+                      <View style={styles.modalRow}>
+                        <Ionicons name="barcode" size={20} color={theme.colors.textSecondary} />
+                        <Text style={styles.modalText}>Código: {selectedCarga.codigo}</Text>
+                      </View>
+                      {selectedCarga.img_url && (
+                        <View style={styles.modalImageContainer}>
+                          <Image 
+                            source={{ uri: selectedCarga.img_url }} 
+                            style={styles.modalImage} 
+                            resizeMode="contain" 
+                          />
+                        </View>
+                      )}
+                    </View>
+                  </>
+                )}
+              </View>
+            </TouchableWithoutFeedback>
           </View>
         </TouchableWithoutFeedback>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#f5f5f5',
   },
   header: {
     backgroundColor: theme.colors.primary,
-    padding: 20,
-    paddingTop: StatusBar.currentHeight + 20,
+    padding: 16,
+    alignItems: 'center',
+    elevation: 4,
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     color: 'white',
+  },
+  content: {
+    flex: 1,
+  },
+  searchWrapper: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: 'white',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    height: 44,
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 16,
+    color: '#333',
+  },
+  pickerContainer: {
+    backgroundColor: 'white',
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+  },
+  picker: {
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    height: 44,
   },
   loadingContainer: {
     flex: 1,
@@ -199,54 +291,77 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   listContent: {
-    padding: 15,
+    padding: 16,
   },
   card: {
-    backgroundColor: theme.colors.cardBackground,
+    backgroundColor: 'white',
     borderRadius: 12,
-    padding: 15,
-    marginBottom: 15,
-    shadowColor: theme.colors.shadowColor,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    marginBottom: 12,
+    elevation: 2,
+    overflow: 'hidden',
+  },
+  cardExpanded: {
+    backgroundColor: 'white',
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  cardHeaderIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#fff1f0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  detailsButton: {
+    padding: 4,
   },
   cardTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: theme.colors.textPrimary,
-    marginLeft: 10,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    flex: 1,
   },
   cardContent: {
-    marginTop: 10,
+    padding: 12,
   },
-  cardInfo: {
+  cardRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 5,
+    paddingVertical: 4,
   },
   cardText: {
-    fontSize: 16,
-    color: theme.colors.textSecondary,
-    marginLeft: 10,
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 8,
+  },
+  cardImageContainer: {
+    marginTop: 8,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  cardImage: {
+    width: '100%',
+    height: 200,
+    backgroundColor: '#f5f5f5',
   },
   fab: {
     position: 'absolute',
-    bottom: 20,
-    right: 20,
+    right: 16,
+    bottom: 16,
     backgroundColor: theme.colors.primary,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 5,
+    elevation: 4,
   },
   modalOverlay: {
     flex: 1,
@@ -255,41 +370,49 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
-    width: '80%',
-    backgroundColor: theme.colors.cardBackground,
+    width: '90%',
+    maxHeight: '80%',
+    backgroundColor: 'white',
     borderRadius: 12,
-    padding: 20,
+    elevation: 5,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
   },
   modalTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 20,
-    color: theme.colors.textPrimary,
+    color: '#333',
+  },
+  closeButton: {
+    padding: 4,
   },
   modalInfo: {
-    width: '100%',
+    padding: 16,
+  },
+  modalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
   },
   modalText: {
     fontSize: 16,
-    color: theme.colors.textSecondary,
-    marginBottom: 10,
+    color: '#666',
+    marginLeft: 12,
+  },
+  modalImageContainer: {
+    marginTop: 16,
+    borderRadius: 8,
+    overflow: 'hidden',
   },
   modalImage: {
     width: '100%',
     height: 200,
-    marginTop: 10,
-  },
-  searchBar: {
-    backgroundColor: 'white',
-    padding: 10,
-    margin: 15,
-    borderRadius: 8,
-    borderColor: theme.colors.primary,
-    borderWidth: 1,
-  },
-  picker: {
-    height: 50,
-    width: '100%',
-    margin: 15,
+    backgroundColor: '#f5f5f5',
   },
 });

@@ -9,7 +9,7 @@ export const crearCargaCombustible = (data) => handleRequest('/carga_combustible
   method: 'POST',
   data,
   headers: {
-    'Content-Type': 'multipart/form-data',
+    'Content-Type': 'application/json',
   }
 });
 
@@ -17,12 +17,13 @@ export const actualizarCargaCombustible = (id, data) => handleRequest(`/carga_co
   method: 'PUT',
   data,
   headers: {
-    'Content-Type': 'multipart/form-data',
+    'Content-Type': 'application/json',
   }
 });
 
 export const eliminarCargaCombustible = (id) => handleRequest(`/carga_combustible/${id}`, {
   method: 'DELETE'
 });
+
 
 export default obtenerCargasCombustible;

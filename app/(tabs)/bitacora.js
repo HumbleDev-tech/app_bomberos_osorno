@@ -5,12 +5,12 @@ import {
   StyleSheet, 
   FlatList, 
   TouchableOpacity, 
-  Alert, 
-  Modal, 
-  TouchableWithoutFeedback, 
   StatusBar, 
-  ActivityIndicator, 
-  TextInput 
+  ActivityIndicator,
+  TextInput,
+  SafeAreaView,
+  Modal,
+  TouchableWithoutFeedback
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,11 +20,12 @@ import { Picker } from '@react-native-picker/picker';
 
 export default function Bitacora() {
   const [bitacoras, setBitacoras] = useState([]);
-  const [selectedBitacora, setSelectedBitacora] = useState(null);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedBitacora, setSelectedBitacora] = useState(null);
   const [sortCriteria, setSortCriteria] = useState('conductor');
+  const [expandedId, setExpandedId] = useState(null);
   const router = useRouter();
 
   const cargarBitacoras = async (showLoading = true) => {
@@ -34,10 +35,6 @@ export default function Bitacora() {
       setBitacoras(data);
     } catch (error) {
       console.error('Error cargando bitacoras:', error);
-      Alert.alert(
-        'Error', 
-        'No se pudieron cargar las bitacoras'
-      );
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -54,88 +51,126 @@ export default function Bitacora() {
   }, []);
 
   const filteredBitacoras = bitacoras.filter(bitacora =>
-    (bitacora.conductor && bitacora.conductor.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    (bitacora.patente && bitacora.patente.toLowerCase().includes(searchQuery.toLowerCase()))
+    (bitacora.rut_personal && bitacora.rut_personal.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (bitacora.patente_maquina && bitacora.patente_maquina.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const sortedBitacoras = [...filteredBitacoras].sort((a, b) => {
     if (sortCriteria === 'conductor') {
-      return a.conductor.localeCompare(b.conductor);
+      return a.rut_personal.localeCompare(b.rut_personal);
     } else if (sortCriteria === 'patente') {
-      return a.patente.localeCompare(b.patente);
-    } else if (sortCriteria === 'fecha') {
-      return new Date(b.fecha) - new Date(a.fecha);
+      return a.patente_maquina.localeCompare(b.patente_maquina);
     }
     return 0;
   });
 
-  const renderItem = ({ item }) => (
-    <TouchableOpacity 
-      style={styles.card} 
-      onPress={() => setSelectedBitacora(item)}
-    >
-      <View style={styles.cardHeader}>
-        <Ionicons name="document-text" size={24} color={theme.colors.primary} />
-        <Text style={styles.cardTitle}>Conductor: {item.conductor}</Text>
-      </View>
-      <View style={styles.cardContent}>
-        <View style={styles.cardInfo}>
-          <Ionicons name="car" size={18} color={theme.colors.textSecondary} />
-          <Text style={styles.cardText}>Patente: {item.patente}</Text>
+  const renderItem = ({ item }) => {
+    const isExpanded = expandedId === item.id;
+    
+    return (
+      <TouchableOpacity 
+        style={[styles.card, isExpanded && styles.cardExpanded]} 
+        onPress={() => setExpandedId(isExpanded ? null : item.id)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.cardHeader}>
+          <View style={styles.cardHeaderIcon}>
+            <Ionicons name="person-outline" size={20} color={theme.colors.primary} />
+          </View>
+          <Text style={styles.cardTitle}>Conductor: {item.rut_personal}</Text>
+          <TouchableOpacity 
+            style={styles.detailsButton}
+            onPress={() => setSelectedBitacora(item)}
+          >
+            <Ionicons name="information-circle-outline" size={24} color={theme.colors.primary} />
+          </TouchableOpacity>
         </View>
-        <View style={styles.cardInfo}>
-          <Ionicons name="calendar" size={18} color={theme.colors.textSecondary} />
-          <Text style={styles.cardText}>Fecha: {item.fecha}</Text>
+        <View style={styles.cardContent}>
+          <View style={styles.cardRow}>
+            <Ionicons name="car-outline" size={16} color={theme.colors.textSecondary} />
+            <Text style={styles.cardText}>Patente: {item.patente_maquina}</Text>
+          </View>
+          <View style={styles.cardRow}>
+            <Ionicons name="calendar-outline" size={16} color={theme.colors.textSecondary} />
+            <Text style={styles.cardText}>Fecha Salida: {item.fh_salida}</Text>
+          </View>
+          <View style={styles.cardRow}>
+            <Ionicons name="time-outline" size={16} color={theme.colors.textSecondary} />
+            <Text style={styles.cardText}>Fecha Llegada: {item.fh_llegada}</Text>
+          </View>
+          {isExpanded && (
+            <>
+              <View style={styles.cardRow}>
+                <Ionicons name="speedometer-outline" size={16} color={theme.colors.textSecondary} />
+                <Text style={styles.cardText}>Kilometraje: {item.kilometraje}</Text>
+              </View>
+              <View style={styles.cardRow}>
+                <Ionicons name="document-text-outline" size={16} color={theme.colors.textSecondary} />
+                <Text style={styles.cardText}>Observaciones: {item.observaciones}</Text>
+              </View>
+            </>
+          )}
         </View>
-        <View style={styles.cardInfo}>
-          <Ionicons name="time" size={18} color={theme.colors.textSecondary} />
-          <Text style={styles.cardText}>Hora: {item.hora}</Text>
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={theme.colors.primary} />
+      
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Bitacoras</Text>
       </View>
-      <TextInput
-        style={styles.searchBar}
-        placeholder="Buscar por conductor o patente..."
-        value={searchQuery}
-        onChangeText={setSearchQuery}
-      />
-      <Picker
-        selectedValue={sortCriteria}
-        style={styles.picker}
-        onValueChange={(itemValue) => setSortCriteria(itemValue)}
-      >
-        <Picker.Item label="Ordenar por Conductor" value="conductor" />
-        <Picker.Item label="Ordenar por Patente" value="patente" />
-        <Picker.Item label="Ordenar por Fecha" value="fecha" />
-      </Picker>
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
+
+      <View style={styles.content}>
+        <View style={styles.searchWrapper}>
+          <View style={styles.searchContainer}>
+            <Ionicons name="search-outline" size={20} color={theme.colors.textSecondary} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Buscar por conductor o patente..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholderTextColor={theme.colors.textSecondary}
+            />
+          </View>
         </View>
-      ) : (
-        <FlatList
-          data={sortedBitacoras}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.id.toString()}
-          contentContainerStyle={styles.listContent}
-          onRefresh={onRefresh}
-          refreshing={refreshing}
-        />
-      )}
+
+        <View style={styles.pickerContainer}>
+          <Picker
+            selectedValue={sortCriteria}
+            style={styles.picker}
+            onValueChange={(itemValue) => setSortCriteria(itemValue)}
+          >
+            <Picker.Item label="Ordenar por Conductor" value="conductor" />
+            <Picker.Item label="Ordenar por Patente" value="patente" />
+          </Picker>
+        </View>
+
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={theme.colors.primary} />
+          </View>
+        ) : (
+          <FlatList
+            data={sortedBitacoras}
+            renderItem={renderItem}
+            keyExtractor={(item) => item.id.toString()}
+            contentContainerStyle={styles.listContent}
+            onRefresh={onRefresh}
+            refreshing={refreshing}
+          />
+        )}
+      </View>
+
       <TouchableOpacity
         style={styles.fab}
         onPress={() => router.push('/modals/formulario_bitacora')}
       >
-        <Ionicons name="add" size={24} color="white" />
+        <Ionicons name="add-outline" size={24} color="white" />
       </TouchableOpacity>
+
       <Modal
         visible={!!selectedBitacora}
         transparent={true}
@@ -144,41 +179,103 @@ export default function Bitacora() {
       >
         <TouchableWithoutFeedback onPress={() => setSelectedBitacora(null)}>
           <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              {selectedBitacora && (
-                <>
-                  <Text style={styles.modalTitle}>Detalles de Bitacora</Text>
-                  <View style={styles.modalInfo}>
-                    <Text style={styles.modalText}>Conductor: {selectedBitacora.conductor}</Text>
-                    <Text style={styles.modalText}>Patente: {selectedBitacora.patente}</Text>
-                    <Text style={styles.modalText}>Fecha: {selectedBitacora.fecha}</Text>
-                    <Text style={styles.modalText}>Hora: {selectedBitacora.hora}</Text>
-                    <Text style={styles.modalText}>Descripción: {selectedBitacora.descripcion}</Text>
-                  </View>
-                </>
-              )}
-            </View>
+            <TouchableWithoutFeedback>
+              <View style={styles.modalContent}>
+                {selectedBitacora && (
+                  <>
+                    <View style={styles.modalHeader}>
+                      <Text style={styles.modalTitle}>Detalles de Bitacora</Text>
+                      <TouchableOpacity 
+                        onPress={() => setSelectedBitacora(null)}
+                        style={styles.closeButton}
+                      >
+                        <Ionicons name="close" size={24} color="#666" />
+                      </TouchableOpacity>
+                    </View>
+                    <View style={styles.modalInfo}>
+                      <View style={styles.modalRow}>
+                        <Ionicons name="person" size={20} color={theme.colors.textSecondary} />
+                        <Text style={styles.modalText}>Conductor: {selectedBitacora.rut_personal}</Text>
+                      </View>
+                      <View style={styles.modalRow}>
+                        <Ionicons name="car" size={20} color={theme.colors.textSecondary} />
+                        <Text style={styles.modalText}>Patente: {selectedBitacora.patente_maquina}</Text>
+                      </View>
+                      <View style={styles.modalRow}>
+                        <Ionicons name="calendar" size={20} color={theme.colors.textSecondary} />
+                        <Text style={styles.modalText}>Fecha Salida: {selectedBitacora.fh_salida}</Text>
+                      </View>
+                      <View style={styles.modalRow}>
+                        <Ionicons name="time" size={20} color={theme.colors.textSecondary} />
+                        <Text style={styles.modalText}>Fecha Llegada: {selectedBitacora.fh_llegada}</Text>
+                      </View>
+                      <View style={styles.modalRow}>
+                        <Ionicons name="speedometer" size={20} color={theme.colors.textSecondary} />
+                        <Text style={styles.modalText}>Kilometraje: {selectedBitacora.kilometraje}</Text>
+                      </View>
+                      <View style={styles.modalRow}>
+                        <Ionicons name="document-text" size={20} color={theme.colors.textSecondary} />
+                        <Text style={styles.modalText}>Observaciones: {selectedBitacora.observaciones}</Text>
+                      </View>
+                    </View>
+                  </>
+                )}
+              </View>
+            </TouchableWithoutFeedback>
           </View>
         </TouchableWithoutFeedback>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#f5f5f5',
   },
   header: {
     backgroundColor: theme.colors.primary,
-    padding: 20,
-    paddingTop: StatusBar.currentHeight + 20,
+    padding: 16,
+    alignItems: 'center',
+    elevation: 4,
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     color: 'white',
+  },
+  content: {
+    flex: 1,
+  },
+  searchWrapper: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: 'white',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    height: 44,
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 16,
+    color: '#333',
+  },
+  pickerContainer: {
+    backgroundColor: 'white',
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+  },
+  picker: {
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    height: 44,
   },
   loadingContainer: {
     flex: 1,
@@ -186,54 +283,67 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   listContent: {
-    padding: 15,
+    padding: 16,
   },
   card: {
-    backgroundColor: theme.colors.cardBackground,
+    backgroundColor: 'white',
     borderRadius: 12,
-    padding: 15,
-    marginBottom: 15,
-    shadowColor: theme.colors.shadowColor,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    marginBottom: 12,
+    elevation: 2,
+    overflow: 'hidden',
+  },
+  cardExpanded: {
+    backgroundColor: 'white',
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  cardHeaderIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#fff1f0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  detailsButton: {
+    padding: 4,
   },
   cardTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: theme.colors.textPrimary,
-    marginLeft: 10,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    flex: 1,
   },
   cardContent: {
-    marginTop: 10,
+    padding: 12,
   },
-  cardInfo: {
+  cardRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 5,
+    paddingVertical: 4,
   },
   cardText: {
-    fontSize: 16,
-    color: theme.colors.textSecondary,
-    marginLeft: 10,
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 8,
   },
   fab: {
     position: 'absolute',
-    bottom: 20,
-    right: 20,
+    right: 16,
+    bottom: 16,
     backgroundColor: theme.colors.primary,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 5,
+    elevation: 4,
   },
   modalOverlay: {
     flex: 1,
@@ -242,34 +352,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
-    width: '80%',
-    backgroundColor: theme.colors.cardBackground,
+    width: '90%',
+    maxHeight: '80%',
+    backgroundColor: 'white',
     borderRadius: 12,
-    padding: 20,
+    elevation: 5,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
   },
   modalTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 20,
-    color: theme.colors.textPrimary,
+    color: '#333',
+  },
+  closeButton: {
+    padding: 4,
   },
   modalInfo: {
-    width: '100%',
+    padding: 16,
+  },
+  modalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
   },
   modalText: {
     fontSize: 16,
-    color: theme.colors.textSecondary,
-    marginBottom: 10,
-  },
-  searchBar: {
-    backgroundColor: theme.colors.cardBackground,
-    borderRadius: 12,
-    padding: 10,
-    margin: 15,
-    fontSize: 16,
-    color: theme.colors.textPrimary,
-  },
-  picker: {
-    margin: 15,
+    color: '#666',
+    marginLeft: 12,
   },
 });

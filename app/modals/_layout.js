@@ -32,6 +32,12 @@ export default function ModalsLayout() {
             title: "Nueva Mantención"
           }}
         />
+        <Stack.Screen 
+          name="formulario_bitacora" 
+          options={{
+            title: "Nueva Bitácora"
+          }}
+        />
         {/* Agrega más Stack.Screen componentes para otras rutas */}
       </Stack>
     </View>

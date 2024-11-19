@@ -3,21 +3,20 @@ import { View, StyleSheet, Alert, SafeAreaView, TextInput, TouchableOpacity, Scr
 import { Text, ActivityIndicator } from 'react-native-paper';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { useRouter } from 'expo-router';
-import { crearCargaCombustible } from '../services/carga_combustible';
-import { obtenerBitacoras } from '../services/bitacora';
+import { crearCargaCombustible, obtenerCargasCombustible } from '../services/carga_combustible';
+import { obtenerBitacoraPorId } from '../services/bitacora';
 import theme from '../theme';
 
 export default function FormularioCombustible() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    bitacora_id: null,
+    bitacora: null,
     litros: '',
     valor_mon: '',
   });
 
   const [openStates, setOpenStates] = useState({
-    bitacora: false,
   });
 
   const [options, setOptions] = useState({
@@ -30,16 +29,40 @@ export default function FormularioCombustible() {
 
   const cargarDatos = async () => {
     try {
-      const bitacorasData = await obtenerBitacoras();
+      const cargasCombustibleData = await obtenerCargasCombustible();
+      const uniqueBitacorasMap = new Map();
+      cargasCombustibleData.forEach(item => {
+        if (!uniqueBitacorasMap.has(item.bitacora.id)) {
+          uniqueBitacorasMap.set(item.bitacora.id, item.bitacora);
+        }
+      });
+      const uniqueBitacoras = Array.from(uniqueBitacorasMap.values());
       setOptions({
-        bitacoras: bitacorasData.map(item => ({
-          label: `${item.rut_personal} - ${item.patente_maquina} - ${item.tipo_maquina}`,
-          value: item.id
+        bitacoras: uniqueBitacoras.map((bitacora) => ({
+          label: `${bitacora.conductor_rut} - ${bitacora.direccion} - ${bitacora.compania}`,
+          value: bitacora.id, // Removed .toString() to keep it as a number
         })),
       });
     } catch (error) {
       console.error('Error al cargar datos:', error);
-      Alert.alert('Error', 'No se pudieron cargar los datos necesarios');
+      if (error.response && error.response.status === 400) {
+        Alert.alert('Error', 'Solicitud incorrecta. Verifique los datos enviados.');
+      } else {
+        Alert.alert('Error', 'No se pudieron cargar los datos necesarios');
+      }
+    }
+  };
+
+  const handleBitacoraSelect = async (bitacoraId) => {
+    try {
+      const bitacoraData = await obtenerBitacoraPorId(bitacoraId);
+      setFormData(prev => ({
+        ...prev,
+        bitacora: bitacoraData
+      }));
+    } catch (error) {
+      console.error('Error al obtener bitácora:', error);
+      Alert.alert('Error', 'No se pudo obtener los datos de la bitácora');
     }
   };
 
@@ -52,7 +75,24 @@ export default function FormularioCombustible() {
     setLoading(true);
     try {
       const dataToSend = {
-        bitacora_id: formData.bitacora_id,
+        bitacora: {
+          compania_id: formData.bitacora.compania_id,
+          conductor_id: formData.bitacora.conductor_id,
+          maquina_id: formData.bitacora.maquina_id,
+          direccion: formData.bitacora.direccion,
+          f_salida: formData.bitacora.f_salida,
+          h_salida: formData.bitacora.h_salida,
+          f_llegada: formData.bitacora.f_llegada,
+          h_llegada: formData.bitacora.h_llegada,
+          clave_id: formData.bitacora.clave_id,
+          km_salida: formData.bitacora.km_salida,
+          km_llegada: formData.bitacora.km_llegada,
+          hmetro_salida: formData.bitacora.hmetro_salida,
+          hmetro_llegada: formData.bitacora.hmetro_llegada,
+          hbomba_salida: formData.bitacora.hbomba_salida,
+          hbomba_llegada: formData.bitacora.hbomba_llegada,
+          obs: formData.bitacora.obs
+        },
         litros: parseFloat(formData.litros),
         valor_mon: parseFloat(formData.valor_mon),
       };
@@ -69,13 +109,10 @@ export default function FormularioCombustible() {
   };
 
   const validarFormulario = () => {
-    return formData.bitacora_id !== null && formData.litros !== '' && formData.valor_mon !== '';
+    return formData.bitacora !== null && formData.litros !== '' && formData.valor_mon !== '';
   };
 
   const closeAllDropdowns = () => {
-    setOpenStates({
-      bitacora: false,
-    });
   };
 
   const renderDropDown = useCallback((field, items, placeholder, zIndex) => (
@@ -83,7 +120,7 @@ export default function FormularioCombustible() {
       <Text style={styles.label}>{placeholder}</Text>
       <DropDownPicker
         open={openStates[field]}
-        value={formData[field]}
+        value={formData.bitacora?.id}
         items={items}
         setOpen={(value) => {
           if (value) {
@@ -92,10 +129,10 @@ export default function FormularioCombustible() {
           setOpenStates(prev => ({ ...prev, [field]: value }));
         }}
         setValue={(callback) => {
-          setFormData(prev => ({
-            ...prev,
-            [field]: callback(prev[field])
-          }));
+          const newValue = callback(formData.bitacora?.id);
+          if (newValue) {
+            handleBitacoraSelect(newValue);
+          }
         }}
         style={styles.dropdown}
         dropDownContainerStyle={[

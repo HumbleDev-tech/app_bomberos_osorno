@@ -3,11 +3,8 @@ import { View, StyleSheet, Alert, SafeAreaView, TextInput, TouchableOpacity, Scr
 import { Text, ActivityIndicator } from 'react-native-paper';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { useRouter } from 'expo-router';
-import { crearMantencion } from '../services/mantencion';
-import { obtenerBitacoras } from '../services/bitacora';
+import { crearMantencion, obtenerMantenciones } from '../services/mantencion';
 import { obtenerMaquinas } from '../services/maquina';
-import { obtenerPersonal } from '../services/personal';
-import { obtenerCompanias } from '../services/compania';
 import { obtenerTalleres } from '../services/taller';
 import { obtenerEstadosMantencion } from '../services/estado_mantencion';
 import theme from '../theme';
@@ -17,30 +14,25 @@ export default function FormularioMantenciones() {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     bitacora_id: null,
-    maquina_id: null,
-    personal_id_responsable: null,
-    compania_id: null,
+    patente: '',
+    fec_termino: '',
     ord_trabajo: '',
     n_factura: '',
     cost_ser: '',
-    taller_id: null,
-    estado_mantencion_id: null,
+    taller: '',
+    estado_mantencion: '',
   });
 
   const [openStates, setOpenStates] = useState({
     bitacora: false,
-    maquina: false,
-    personal: false,
-    compania: false,
+    patente: false,
     taller: false,
     estado: false,
   });
 
   const [options, setOptions] = useState({
     bitacoras: [],
-    maquinas: [],
-    personal: [],
-    companias: [],
+    patentes: [],
     talleres: [],
     estadosMantencion: [],
   });
@@ -51,26 +43,22 @@ export default function FormularioMantenciones() {
 
   const cargarDatos = async () => {
     try {
-      const [bitacorasData, maquinasData, personalData, companiasData, talleresData, estadosData] = 
+      const [mantencionesData, maquinasData, talleresData, estadosData] = 
         await Promise.all([
-          obtenerBitacoras(),
+          obtenerMantenciones(),
           obtenerMaquinas(),
-          obtenerPersonal(),
-          obtenerCompanias(),
           obtenerTalleres(),
           obtenerEstadosMantencion(),
         ]);
 
       setOptions({
-        bitacoras: bitacorasData.map(item => ({
-          label: `${item.rut_personal} - ${item.patente_maquina} - ${item.tipo_maquina}`,
+        bitacoras: mantencionesData.map(item => ({
+          label: `${item.bitacora.conductor} - ${item.patente}`,
           value: item.id
         })),
-        maquinas: maquinasData.map(item => ({ label: `${item.codigo} - ${item.patente}`, value: item.maquina_id })),
-        personal: personalData.map(item => ({ label: `${item.nombre} ${item.apellido}`, value: item.id })),
-        companias: companiasData.map(item => ({ label: item.nombre, value: item.id })),
-        talleres: talleresData.map(item => ({ label: item.nombre, value: item.id })),
-        estadosMantencion: estadosData.map(item => ({ label: item.nombre, value: item.id })),
+        patentes: maquinasData.map(item => ({ label: item.patente, value: item.patente })),
+        talleres: talleresData.map(item => ({ label: item.nombre, value: item.nombre })),
+        estadosMantencion: estadosData.map(item => ({ label: item.nombre, value: item.nombre })),
       });
     } catch (error) {
       console.error('Error al cargar datos:', error);
@@ -87,9 +75,15 @@ export default function FormularioMantenciones() {
     setLoading(true);
     try {
       const dataToSend = {
-        ...formData,
+        bitacora_id: formData.bitacora_id,
+        maquina_id: formData.maquina_id,
+        ord_trabajo: formData.ord_trabajo,
         n_factura: parseInt(formData.n_factura),
         cost_ser: parseFloat(formData.cost_ser),
+        taller_id: formData.taller_id,
+        estado_mantencion_id: formData.estado_mantencion_id,
+        fec_inicio: formData.fec_inicio,
+        fec_termino: formData.fec_termino,
       };
 
       await crearMantencion(dataToSend);
@@ -104,21 +98,19 @@ export default function FormularioMantenciones() {
   };
 
   const validarFormulario = () => {
-    const requiredFields = ['bitacora_id', 'maquina_id', 'personal_id_responsable', 'compania_id', 'ord_trabajo', 'n_factura', 'cost_ser', 'taller_id', 'estado_mantencion_id'];
+    const requiredFields = ['bitacora_id', 'patente', 'ord_trabajo', 'n_factura', 'cost_ser', 'taller', 'estado_mantencion'];
     for (let field of requiredFields) {
-      if (!formData[field] || isNaN(formData.n_factura) || isNaN(formData.cost_ser)) {
+      if (!formData[field]) {
         return false;
       }
     }
-    return true;
+    return !isNaN(parseInt(formData.n_factura)) && !isNaN(parseFloat(formData.cost_ser));
   };
 
   const closeAllDropdowns = () => {
     setOpenStates({
       bitacora: false,
-      maquina: false,
-      personal: false,
-      compania: false,
+      patente: false,
       taller: false,
       estado: false,
     });
@@ -144,10 +136,7 @@ export default function FormularioMantenciones() {
           }));
         }}
         style={styles.dropdown}
-        dropDownContainerStyle={[
-          styles.dropdownList,
-          { position: 'relative' }
-        ]}
+        dropDownContainerStyle={styles.dropdownList}
         textStyle={styles.dropdownText}
         placeholder={placeholder}
         placeholderStyle={styles.placeholderText}
@@ -160,6 +149,19 @@ export default function FormularioMantenciones() {
       />
     </View>
   ), [openStates, formData]);
+
+  const renderInput = (field, label, placeholder, keyboardType = 'default') => (
+    <View style={styles.inputContainer}>
+      <Text style={styles.label}>{label}</Text>
+      <TextInput
+        style={styles.input}
+        value={formData[field]}
+        onChangeText={(text) => setFormData(prev => ({ ...prev, [field]: text }))}
+        placeholder={placeholder}
+        keyboardType={keyboardType}
+      />
+    </View>
+  );
 
   if (loading) {
     return (
@@ -177,47 +179,16 @@ export default function FormularioMantenciones() {
         nestedScrollEnabled={true}
       >
         {renderDropDown('bitacora_id', options.bitacoras, 'Bitácora', 6000)}
-        {renderDropDown('maquina_id', options.maquinas, 'Máquina', 5000)}
-        {renderDropDown('personal_id_responsable', options.personal, 'Personal Responsable', 4000)}
-        {renderDropDown('compania_id', options.companias, 'Compañía', 3000)}
-
-        <View style={[styles.inputContainer, { zIndex: 1 }]}>
-          <Text style={styles.label}>Orden de Trabajo</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.ord_trabajo}
-            onChangeText={(text) => setFormData(prev => ({ ...prev, ord_trabajo: text }))}
-            placeholder="Ingrese orden de trabajo"
-          />
-        </View>
-
-        <View style={[styles.inputContainer, { zIndex: 1 }]}>
-          <Text style={styles.label}>Número de Factura</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.n_factura}
-            onChangeText={(text) => setFormData(prev => ({ ...prev, n_factura: text }))}
-            keyboardType="numeric"
-            placeholder="Ingrese número de factura"
-          />
-        </View>
-
-        <View style={[styles.inputContainer, { zIndex: 1 }]}>
-          <Text style={styles.label}>Costo Servicio</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.cost_ser}
-            onChangeText={(text) => setFormData(prev => ({ ...prev, cost_ser: text }))}
-            keyboardType="numeric"
-            placeholder="Ingrese costo del servicio"
-          />
-        </View>
-
-        {renderDropDown('taller_id', options.talleres, 'Taller', 2000)}
-        {renderDropDown('estado_mantencion_id', options.estadosMantencion, 'Estado de Mantención', 1000)}
+        {renderDropDown('patente', options.patentes, 'Patente', 5000)}
+        {renderInput('fec_termino', 'Fecha de Término', 'DD-MM-YYYY')}
+        {renderInput('ord_trabajo', 'Orden de Trabajo', 'Ingrese orden de trabajo')}
+        {renderInput('n_factura', 'Número de Factura', 'Ingrese número de factura', 'numeric')}
+        {renderInput('cost_ser', 'Costo Servicio', 'Ingrese costo del servicio', 'numeric')}
+        {renderDropDown('taller', options.talleres, 'Taller', 4000)}
+        {renderDropDown('estado_mantencion', options.estadosMantencion, 'Estado de Mantención', 3000)}
 
         <TouchableOpacity
-          style={[styles.submitButton, { zIndex: 1 }]}
+          style={styles.submitButton}
           onPress={handleSubmit}
           disabled={loading}
         >
@@ -248,14 +219,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: theme.colors.background,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: theme.colors.primary,
-    textAlign: 'center',
-    marginBottom: 24,
-    marginTop: 8,
-  },
   dropdownContainer: {
     marginBottom: 16,
   },
@@ -272,7 +235,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 12,
     height: 50,
-    minHeight: 50,
   },
   dropdownList: {
     backgroundColor: theme.colors.cardBackground,
